@@ -1,0 +1,6 @@
+node_modules/
+dist/
+movies.db
+test_movies.db
+dashboard.png
+__pycache__/

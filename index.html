@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodCinema - Movie Mood Analyzer</title>
+    <style>
+        :root {
+            --bg: #0D0F14;
+            --surface: #161920;
+            --card: #1C1F2A;
+            --accent: #7C6DFA;
+            --accent-hover: #6756F3;
+            --accent-glow: rgba(124, 109, 250, 0.25);
+            --gold: #F59E0B;
+            --text-main: #E2E8F0;
+            --text-muted: #94A3B8;
+            --border: #2D313F;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --red: #EF4444;
+            --green: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* App Container Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 220px;
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 36px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-item.active {
+            color: #ffffff;
+            background-color: var(--accent);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        /* Stats Panel in Sidebar */
+        .stats-panel {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: auto;
+        }
+
+        .stats-panel h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-row span {
+            color: var(--text-muted);
+        }
+
+        .stat-row strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .stat-row #stat-top-mood {
+            color: var(--accent);
+            text-transform: capitalize;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 220px;
+            flex-grow: 1;
+            padding: 40px;
+            max-width: 1400px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loading Spinner Overlay */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(13, 15, 20, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(124, 109, 250, 0.1);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Page 1: Mood Picks Page Styling */
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .mood-btn {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mood-btn:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .mood-btn.active {
+            border-width: 2px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .mood-btn .mood-emoji {
+            font-size: 2rem;
+        }
+
+        .mood-btn .mood-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .recommendation-intro {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .recommendation-intro h2 {
+            font-size: 1.25rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recommendation-intro p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-intro .excluded-badge {
+            display: inline-block;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--gold);
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        /* Movie Grid & Movie Cards Styling */
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .movie-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent);
+            box-shadow: 0 12px 24px rgba(124, 109, 250, 0.15);
+        }
+
+        .poster-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            background-color: #0b0c0f;
+            overflow: hidden;
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .movie-card:hover .movie-poster {
+            transform: scale(1.05);
+        }
+
+        .rating-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(13, 15, 20, 0.85);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gold);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .watched-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(16, 185, 129, 0.9);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .movie-info {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 6px;
+        }
+
+        .movie-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.35;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            min-height: 2.7em;
+        }
+
+        .movie-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .movie-actions {
+            display: flex;
+            border-top: 1px solid var(--border);
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+
+        .action-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 12px 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .action-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .action-btn:first-child {
+            border-right: 1px solid var(--border);
+        }
+
+        .action-btn.active-watched {
+            color: var(--green);
+        }
+
+        .action-btn.active-watchlist {
+            color: var(--accent);
+        }
+
+        .action-btn.danger-action:hover {
+            color: var(--red);
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+
+        /* Page 2: Search Page Styling */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            max-width: 600px;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 18px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        .search-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 24px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .search-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        /* Movie Detail Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-container {
+            width: 90%;
+            max-width: 800px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.open .modal-container {
+            transform: scale(1);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background-color: rgba(13, 15, 20, 0.75);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.15s;
+        }
+
+        .close-modal:hover {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .modal-header-bg {
+            position: relative;
+            height: 220px;
+            width: 100%;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center 20%;
+        }
+
+        .modal-header-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(22, 25, 32, 0.4) 0%, var(--surface) 100%);
+        }
+
+        .modal-content-scroll {
+            overflow-y: auto;
+            padding: 0 32px 32px 32px;
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 28px;
+            margin-top: -100px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .modal-poster {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            background-color: #0c0d12;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+
+        .modal-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .meta-pill {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .genre-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .genre-tag {
+            background-color: rgba(124, 109, 250, 0.12);
+            color: #b2a9fc;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .rating-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .rating-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .rating-pill.imdb {
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--gold);
+        }
+
+        .rating-pill.rt {
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #F87171;
+        }
+
+        .rating-pill.metascore {
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34D399;
+        }
+
+        .modal-section {
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+        }
+
+        .modal-section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .modal-plot {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 10px;
+            font-size: 0.88rem;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .modal-actions-bar {
+            display: flex;
+            gap: 16px;
+            border-top: 1px solid var(--border);
+            padding: 16px 32px;
+            background-color: rgba(0, 0, 0, 0.15);
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-modal.primary {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+        }
+
+        .btn-modal.primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-modal.secondary {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-modal.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-color: var(--text-main);
+        }
+
+        .btn-modal.watched-active {
+            background-color: var(--green);
+            color: white;
+            border: none;
+        }
+
+        .btn-modal.watchlist-active {
+            background-color: rgba(124, 109, 250, 0.15);
+            color: #b2a9fc;
+            border: 1px solid var(--accent);
+        }
+
+        /* Toast Notifications Styling */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background-color: var(--surface);
+            border-left: 4px solid var(--accent);
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 14px 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            min-width: 280px;
+            max-width: 400px;
+            animation: toast-in 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+            opacity: 0;
+        }
+
+        @keyframes toast-in {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left-color: var(--green);
+        }
+
+        .toast.error {
+            border-left-color: var(--red);
+        }
+
+        .toast.info {
+            border-left-color: var(--accent);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .toast-close:hover {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loader Overlay -->
+    <div id="global-loader" class="loader-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">🍿 MoodCinema</div>
+            <nav class="nav-links">
+                <div class="nav-item active" data-page="mood-picks">🎭 Mood Picks</div>
+                <div class="nav-item" data-page="search">🔍 Search</div>
+                <div class="nav-item" data-page="watchlist">⏳ Watchlist</div>
+                <div class="nav-item" data-page="watched">👁️ Watched</div>
+                <div class="nav-item" data-page="analytics">📊 Analytics</div>
+            </nav>
+            <div class="stats-panel">
+                <h3>Stats</h3>
+                <div class="stat-row">
+                    <span>Watched:</span>
+                    <strong id="stat-watched">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Watchlist:</span>
+                    <strong id="stat-watchlist">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Top Mood:</span>
+                    <strong id="stat-top-mood">None</strong>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="main-content">
+            
+            <!-- Page 1: Mood Picks -->
+            <section id="page-mood-picks" class="page-section">
+                <div class="page-header">
+                    <h1>Mood Picks</h1>
+                    <p>How are you feeling today? Let us find the perfect match.</p>
+                </div>
+                
+                <!-- Mood Buttons Grid -->
+                <div class="mood-grid" id="mood-buttons-container">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <!-- Recommendation Output -->
+                <div id="mood-recommendations-wrapper" class="hidden">
+                    <div class="recommendation-intro" id="recommendation-header">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    
+                    <div class="movie-grid" id="mood-movies-container">
+                        <!-- Movies load here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 2: Search -->
+            <section id="page-search" class="page-section hidden">
+                <div class="page-header">
+                    <h1>Search Movies</h1>
+                    <p>Search standard title queries directly from the OMDB database.</p>
+                </div>
+                
+                <div class="search-bar">
+                    <input type="text" id="search-query-input" class="search-input" placeholder="Type a movie title...">
+                    <button id="search-submit-btn" class="search-btn">Search</button>
+                </div>
+
+                <div class="movie-grid" id="search-movies-container">
+                    <!-- Search results -->
+                </div>
+                <div id="search-empty-state" class="empty-state">
+                    <div class="icon">🔍</div>
+                    <h3>Start searching</h3>
+                    <p>Enter a movie title in the search box above to search the OMDB database.</p>
+                </div>
+            </section>
+
+            <!-- Page 3: Watchlist -->
+            <section id="page-watchlist" class="page-section hidden">
+                <div class="page-header">
+                    <h1>My Watchlist</h1>
+                    <p>Movies you plan to watch. Marking as watched will move them to history.</p>
+                </div>
+
+                <div class="movie-grid" id="watchlist-movies-container">
+                    <!-- Watchlist items -->
+                </div>
+                <div id="watchlist-empty-state" class="empty-state hidden">
+                    <div class="icon">⏳</div>
+                    <h3>Your watchlist is empty</h3>
+                    <p>Browse through mood picks or search movies to add them here!</p>
+                </div>
+            </section>
+
+            <!-- Page 4: Watched -->
+            <section id="page-watched" class="page-section hidden">
+                <div class="page-header">
+                    <h1>Watched History</h1>
+                    <p>A history of all the films you've marked as watched.</p>
+                </div>
+
+                <div class="movie-grid" id="watched-movies-container">
+                    <!-- Watched items -->
+                </div>
+                <div id="watched-empty-state" class="empty-state hidden">
+                    <div class="icon">🎬</div>
+                    <h3>No watched movies yet</h3>
+                    <p>Keep track of your cinema journey by marking films as watched!</p>
+                </div>
+            </section>
+
+            <!-- Page 5: Analytics -->
+            <section id="page-analytics" class="page-section hidden">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h1>Cinema Analytics</h1>
+                        <p>Visual statistics generated from your watch history and logged mood sessions.</p>
+                    </div>
+                    <button id="refresh-analytics-btn" class="search-btn" style="padding: 10px 18px; display: flex; align-items: center; gap: 8px;">
+                        🔄 Regenerate Dashboard
+                    </button>
+                </div>
+
+                <div class="analytics-card" style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; margin-top: 8px;">
+                    <img id="analytics-dashboard-img" src="" alt="Analytics Dashboard" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);">
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Movie Details Modal -->
+    <div id="movie-modal" class="modal-overlay">
+        <div class="modal-container">
+            <button class="close-modal" id="modal-close-btn">&times;</button>
+            <div class="modal-header-bg" id="modal-header-bg">
+                <div class="modal-header-overlay"></div>
+            </div>
+            
+            <div class="modal-content-scroll">
+                <img id="modal-poster" class="modal-poster" src="" alt="Movie Poster">
+                
+                <div class="modal-body">
+                    <h2 class="modal-title" id="modal-title">Movie Title</h2>
+                    
+                    <div class="modal-metadata">
+                        <span class="meta-pill" id="modal-year">1999</span>
+                        <span class="meta-pill" id="modal-rated">PG-13</span>
+                        <span class="meta-pill" id="modal-runtime">120 min</span>
+                    </div>
+
+                    <div class="genre-container" id="modal-genres">
+                        <!-- Genres list -->
+                    </div>
+
+                    <div class="rating-pills">
+                        <div class="rating-pill imdb" id="modal-rating-imdb">
+                            ⭐ <span id="val-imdb">7.8</span> (IMDb)
+                        </div>
+                        <div class="rating-pill rt" id="modal-rating-rt">
+                            🍅 <span id="val-rt">N/A</span> (RT)
+                        </div>
+                        <div class="rating-pill metascore" id="modal-rating-metascore">
+                            🍿 <span id="val-metascore">N/A</span> (Metascore)
+                        </div>
+                    </div>
+
+                    <div class="modal-section">
+                        <div class="modal-section-title">Plot</div>
+                        <p class="modal-plot" id="modal-plot">Movie Plot...</p>
+                    </div>
+
+                    <div class="modal-section info-grid">
+                        <div class="info-label">Director</div>
+                        <div id="modal-director">Director Name</div>
+                        
+                        <div class="info-label">Cast</div>
+                        <div id="modal-cast">Actor 1, Actor 2, Actor 3</div>
+                        
+                        <div class="info-label">Awards</div>
+                        <div id="modal-awards">Award name or Nominations</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions-bar">
+                <button class="btn-modal secondary" id="modal-watchlist-btn">+ List</button>
+                <button class="btn-modal primary" id="modal-watched-btn">✅ Watched</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Application Script -->
+    <script>
+        const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:5000/api' : `${window.location.origin}/api`;
+        
+        // State management
+        let watchedIds = new Set();
+        let watchlistIds = new Set();
+        let activePage = 'mood-picks';
+        let activeMood = null;
+        let selectedMovie = null; // Full movie detail of currently selected movie
+
+        // Hardcoded moods fallback config
+        const fallbackMoods = [
+            { mood: 'happy', label: 'Happy', emoji: '😊', color: '#FAD02C', description: 'Lighthearted comedies and feel-good stories to boost your spirit.' },
+            { mood: 'sad', label: 'Sad', emoji: '😢', color: '#3A86C8', description: 'Emotional dramas and moving tales for a good cry and reflection.' },
+            { mood: 'excited', label: 'Excited', emoji: '⚡', color: '#FF6B6B', description: 'High-octane blockbusters, action-packed adventures, and wild rides.' },
+            { mood: 'scared', label: 'Scared', emoji: '😱', color: '#7F5A83', description: 'Spooky horror, psychological thrillers, and hair-raising suspense.' },
+            { mood: 'romantic', label: 'Romantic', emoji: '💖', color: '#FF7597', description: 'Heartwarming love stories, classic romances, and cute rom-coms.' },
+            { mood: 'bored', label: 'Bored', emoji: '🥱', color: '#8E9AAF', description: 'Mind-bending puzzles, epic fantasy worlds, and gripping mysteries.' },
+            { mood: 'angry', label: 'Angry', emoji: '😠', color: '#D90429', description: 'Revenge thrillers, high-stakes combat, and stories of justice being served.' },
+            { mood: 'nostalgic', label: 'Nostalgic', emoji: '🕰️', color: '#E29578', description: 'Classic favorites, period dramas, and memories from days gone by.' }
+        ];
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            initEventListeners();
+            await refreshState();
+            await loadMoodsList();
+            showPage('mood-picks');
+        });
+
+        // Event Listeners
+        function initEventListeners() {
+            // Navigation clicking
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const page = e.currentTarget.getAttribute('data-page');
+                    showPage(page);
+                });
+            });
+
+            // Search submission
+            document.getElementById('search-submit-btn').addEventListener('click', () => {
+                triggerSearch();
+            });
+            document.getElementById('search-query-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    triggerSearch();
+                }
+            });
+
+            // Modal closure
+            document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+            document.getElementById('movie-modal').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) {
+                    closeModal();
+                }
+            });
+
+            // Modal Actions
+            document.getElementById('modal-watched-btn').addEventListener('click', handleModalWatchedClick);
+            document.getElementById('modal-watchlist-btn').addEventListener('click', handleModalWatchlistClick);
+
+            // Analytics Refresh Action
+            document.getElementById('refresh-analytics-btn').addEventListener('click', handleAnalyticsRefresh);
+        }
+
+        // Navigation switching
+        async function showPage(pageId) {
+            activePage = pageId;
+            
+            // Toggle sidebar nav items classes
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('data-page') === pageId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Toggle sections visibility
+            document.querySelectorAll('.page-section').forEach(section => {
+                if (section.id === `page-${pageId}`) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+
+            // Refresh actions for specific pages
+            if (pageId === 'watchlist') {
+                await loadWatchlistPage();
+            } else if (pageId === 'watched') {
+                await loadWatchedPage();
+            } else if (pageId === 'analytics') {
+                await loadAnalyticsPage();
+            } else if (pageId === 'mood-picks' && activeMood) {
+                // If there's an active mood, refresh it
+                await fetchRecommendations(activeMood);
+            }
+        }
+
+        // Global spinner toggling
+        function toggleLoader(show) {
+            const loader = document.getElementById('global-loader');
+            if (show) {
+                loader.classList.remove('hidden');
+            } else {
+                loader.classList.add('hidden');
+            }
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let emoji = 'ℹ️';
+            if (type === 'success') emoji = '✅';
+            if (type === 'error') emoji = '❌';
+            
+            toast.innerHTML = `
+                <span>${emoji} &nbsp;${message}</span>
+                <button class="toast-close">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Click to close
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                toast.remove();
+            });
+            
+            // Auto dismiss after 3.5s
+            setTimeout(() => {
+                toast.style.animation = 'toast-in 0.3s reverse forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Refresh global state arrays + sidebar stats
+        async function refreshState() {
+            try {
+                // Fetch stats
+                const statsRes = await fetch(`${API_BASE}/stats`);
+                if (statsRes.ok) {
+                    const stats = await statsRes.json();
+                    document.getElementById('stat-watched').textContent = stats.watched_count;
+                    document.getElementById('stat-watchlist').textContent = stats.watchlist_count;
+                    document.getElementById('stat-top-mood').textContent = stats.top_mood || 'None';
+                }
+
+                // Fetch watched movies list
+                const watchedRes = await fetch(`${API_BASE}/watched`);
+                if (watchedRes.ok) {
+                    const watchedMovies = await watchedRes.json();
+                    watchedIds = new Set(watchedMovies.map(m => m.imdb_id));
+                }
+
+                // Fetch watchlist
+                const watchlistRes = await fetch(`${API_BASE}/watchlist`);
+                if (watchlistRes.ok) {
+                    const watchlistMovies = await watchlistRes.json();
+                    watchlistIds = new Set(watchlistMovies.map(m => m.imdb_id));
+                }
+            } catch (err) {
+                console.error("Error refreshing application state:", err);
+            }
+        }
+
+        // Render standard placeholder image for movies without a poster
+        function getPosterSrc(poster) {
+            if (!poster || poster === 'N/A') {
+                return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect width="200" height="300" fill="%231C1F2A"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="%2394A3B8">🍿 No Poster</text></svg>';
+            }
+            return poster;
+        }
+
+        // Render movie grid onto target container
+        function renderMovieGrid(container, movies, sourcePage) {
+            container.innerHTML = '';
+            
+            if (movies.length === 0) {
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1;" class="empty-state">
+                        <div class="icon">🎬</div>
+                        <h3>No movies found</h3>
+                        <p>We couldn't retrieve any records for this category.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            movies.forEach(movie => {
+                const isWatched = watchedIds.has(movie.imdb_id);
+                const isWatchlist = watchlistIds.has(movie.imdb_id);
+                
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.dataset.imdb = movie.imdb_id;
+                
+                // Poster and rating
+                let ratingHtml = movie.rating && movie.rating !== 'N/A' 
+                    ? `<div class="rating-badge">⭐ ${movie.rating}</div>` 
+                    : '';
+                let watchedBadgeHtml = isWatched 
+                    ? `<div class="watched-badge">👁️ Watched</div>` 
+                    : '';
+
+                card.innerHTML = `
+                    <div class="poster-container">
+                        <img class="movie-poster" src="${getPosterSrc(movie.poster)}" alt="${movie.title}" loading="lazy">
+                        ${ratingHtml}
+                        ${watchedBadgeHtml}
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-title" title="${movie.title}">${movie.title}</div>
+                        <div class="movie-meta">
+                            <span>${movie.year || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="movie-actions">
+                        ${getActionButtonsHtml(isWatched, isWatchlist, sourcePage)}
+                    </div>
+                `;
+
+                // Handle opening detail modal
+                card.addEventListener('click', (e) => {
+                    // Prevent open modal if action button was clicked
+                    if (e.target.closest('.action-btn')) return;
+                    openMovieDetail(movie.imdb_id);
+                });
+
+                // Attach action button event listeners
+                const btnWatched = card.querySelector('.btn-watched-action');
+                const btnWatchlist = card.querySelector('.btn-watchlist-action');
+
+                if (btnWatched) {
+                    btnWatched.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await handleCardAction('watched', movie, sourcePage, isWatched);
+                    });
+                }
+
+                if (btnWatchlist) {
+                    btnWatchlist.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await handleCardAction('watchlist', movie, sourcePage, isWatchlist);
+                    });
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+        // Return appropriate card buttons markup based on page context
+        function getActionButtonsHtml(isWatched, isWatchlist, sourcePage) {
+            if (sourcePage === 'watched') {
+                return `
+                    <button class="action-btn active-watched btn-watched-action" title="Already watched">✅ Watched</button>
+                    <button class="action-btn danger-action btn-watchlist-action">🗑️ Remove</button>
+                `;
+            } else if (sourcePage === 'watchlist') {
+                return `
+                    <button class="action-btn btn-watched-action">✅ Watched</button>
+                    <button class="action-btn danger-action btn-watchlist-action">❌ Remove</button>
+                `;
+            } else {
+                // Search or Mood Picks page
+                const watchedBtn = isWatched 
+                    ? `<button class="action-btn active-watched btn-watched-action" title="Marked as Watched">✅ Watched</button>`
+                    : `<button class="action-btn btn-watched-action">✅ Watched</button>`;
+                
+                const watchlistBtn = isWatched
+                    ? `<button class="action-btn" disabled style="opacity: 0.4; cursor: not-allowed;">+ List</button>`
+                    : isWatchlist
+                        ? `<button class="action-btn active-watchlist btn-watchlist-action">❌ List</button>`
+                        : `<button class="action-btn btn-watchlist-action">+ List</button>`;
+                        
+                return `${watchedBtn}${watchlistBtn}`;
+            }
+        }
+
+        // Handle watchlist or watched list card operations
+        async function handleCardAction(actionType, movie, sourcePage, isCurrentlyActive) {
+            toggleLoader(true);
+            try {
+                if (sourcePage === 'watched') {
+                    if (actionType === 'watchlist') {
+                        // "Remove" watched button clicked
+                        const res = await fetch(`${API_BASE}/watched/${movie.imdb_id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            showToast("Removed movie from watched history.", "success");
+                        } else {
+                            showToast("Failed to remove movie.", "error");
+                        }
+                    }
+                } else if (sourcePage === 'watchlist') {
+                    if (actionType === 'watched') {
+                        // "✅ Watched" clicked from watchlist
+                        const res = await fetch(`${API_BASE}/watched`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imdbID: movie.imdb_id, title: movie.title, year: movie.year, poster: movie.poster })
+                        });
+                        if (res.ok) {
+                            showToast("Marked as Watched. Removed from watchlist.", "success");
+                        } else {
+                            showToast("Failed to mark movie as watched.", "error");
+                        }
+                    } else if (actionType === 'watchlist') {
+                        // "Remove" from watchlist clicked
+                        const res = await fetch(`${API_BASE}/watchlist/${movie.imdb_id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            showToast("Removed from watchlist.", "success");
+                        } else {
+                            showToast("Failed to remove movie.", "error");
+                        }
+                    }
+                } else {
+                    // Search or Mood page
+                    if (actionType === 'watched') {
+                        if (isCurrentlyActive) {
+                            // Delete from watched history
+                            const res = await fetch(`${API_BASE}/watched/${movie.imdb_id}`, { method: 'DELETE' });
+                            if (res.ok) showToast("Removed from watched history.", "success");
+                        } else {
+                            // Add to watched history
+                            const res = await fetch(`${API_BASE}/watched`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ imdbID: movie.imdb_id, title: movie.title, year: movie.year, poster: movie.poster })
+                            });
+                            if (res.ok) showToast("Marked movie as Watched.", "success");
+                        }
+                    } else if (actionType === 'watchlist') {
+                        if (isCurrentlyActive) {
+                            // Delete from watchlist
+                            const res = await fetch(`${API_BASE}/watchlist/${movie.imdb_id}`, { method: 'DELETE' });
+                            if (res.ok) showToast("Removed from watchlist.", "success");
+                        } else {
+                            // Add to watchlist
+                            const res = await fetch(`${API_BASE}/watchlist`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ imdbID: movie.imdb_id, title: movie.title, year: movie.year, poster: movie.poster })
+                            });
+                            if (res.ok) {
+                                showToast("Added movie to watchlist.", "success");
+                            } else {
+                                const errData = await res.json();
+                                showToast(errData.message || "Failed to add to watchlist.", "error");
+                            }
+                        }
+                    }
+                }
+
+                // Sync UI and reload active view
+                await refreshState();
+                await refreshActivePageContent();
+            } catch (err) {
+                console.error("Action error:", err);
+                showToast("An error occurred performing the action.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Refresh lists after data updates
+        async function refreshActivePageContent() {
+            if (activePage === 'watchlist') {
+                await loadWatchlistPage();
+            } else if (activePage === 'watched') {
+                await loadWatchedPage();
+            } else if (activePage === 'analytics') {
+                await loadAnalyticsPage();
+            } else if (activePage === 'mood-picks') {
+                if (activeMood) await fetchRecommendations(activeMood);
+            } else if (activePage === 'search') {
+                const query = document.getElementById('search-query-input').value.trim();
+                if (query) await executeSearch(query);
+            }
+        }
+
+        // Page 1: Load moods grid
+        async function loadMoodsList() {
+            const container = document.getElementById('mood-buttons-container');
+            container.innerHTML = '';
+            
+            let moods = fallbackMoods;
+            try {
+                const res = await fetch(`${API_BASE}/moods`);
+                if (res.ok) {
+                    moods = await res.json();
+                }
+            } catch (err) {
+                console.warn("Could not retrieve moods list, utilizing fallback values.", err);
+            }
+
+            moods.forEach(m => {
+                const button = document.createElement('button');
+                button.className = 'mood-btn';
+                button.style.borderColor = m.color + '40'; // semi transparent border
+                
+                button.innerHTML = `
+                    <span class="mood-emoji">${m.emoji}</span>
+                    <span class="mood-label">${m.label}</span>
+                `;
+                
+                button.addEventListener('click', async () => {
+                    // Mark as active
+                    document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    button.style.boxShadow = `0 4px 15px ${m.color}25`;
+                    
+                    activeMood = m.mood;
+                    await fetchRecommendations(m.mood);
+                });
+                
+                container.appendChild(button);
+            });
+        }
+
+        // Get recommendations for selected mood
+        async function fetchRecommendations(mood) {
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_BASE}/recommend?mood=${mood}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Show outputs
+                    const wrapper = document.getElementById('mood-recommendations-wrapper');
+                    wrapper.classList.remove('hidden');
+                    
+                    const header = document.getElementById('recommendation-header');
+                    header.style.borderLeftColor = data.profile.color;
+                    
+                    header.innerHTML = `
+                        <h2>${data.profile.emoji} ${data.profile.label} Recommendations</h2>
+                        <p>${data.profile.description}</p>
+                        ${data.excluded_count > 0 
+                            ? `<span class="excluded-badge">ℹ️ Filtered out ${data.excluded_count} previously watched movies</span>` 
+                            : ''
+                        }
+                    `;
+                    
+                    renderMovieGrid(
+                        document.getElementById('mood-movies-container'),
+                        data.movies,
+                        'mood-picks'
+                    );
+
+                    // Quick refresh of top stats
+                    await refreshState();
+                } else {
+                    showToast("Could not retrieve movie recommendations.", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Network error getting recommendations.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Page 2: Trigger search
+        async function triggerSearch() {
+            const query = document.getElementById('search-query-input').value.trim();
+            if (!query) {
+                showToast("Please enter a search term first.", "info");
+                return;
+            }
+            toggleLoader(true);
+            try {
+                await executeSearch(query);
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        async function executeSearch(query) {
+            const emptyState = document.getElementById('search-empty-state');
+            const grid = document.getElementById('search-movies-container');
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    renderMovieGrid(grid, data.movies, 'search');
+                } else {
+                    showToast("Failed to run movie query search.", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error searching movies.", "error");
+            }
+        }
+
+        // Page 3: Load Watchlist
+        async function loadWatchlistPage() {
+            toggleLoader(true);
+            const emptyState = document.getElementById('watchlist-empty-state');
+            const grid = document.getElementById('watchlist-movies-container');
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/watchlist`);
+                if (res.ok) {
+                    const movies = await res.json();
+                    if (movies.length === 0) {
+                        emptyState.classList.remove('hidden');
+                    } else {
+                        renderMovieGrid(grid, movies, 'watchlist');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error loading watchlist.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Page 4: Load Watched
+        async function loadWatchedPage() {
+            toggleLoader(true);
+            const emptyState = document.getElementById('watched-empty-state');
+            const grid = document.getElementById('watched-movies-container');
+            
+            emptyState.classList.add('hidden');
+            grid.innerHTML = '';
+            
+            try {
+                const res = await fetch(`${API_BASE}/watched`);
+                if (res.ok) {
+                    const movies = await res.json();
+                    if (movies.length === 0) {
+                        emptyState.classList.remove('hidden');
+                    } else {
+                        renderMovieGrid(grid, movies, 'watched');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error loading watched history.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Page 5: Load Analytics
+        async function loadAnalyticsPage() {
+            toggleLoader(true);
+            const img = document.getElementById('analytics-dashboard-img');
+            // Append timestamp to bypass caching
+            img.src = `${API_BASE}/analytics/dashboard?t=${Date.now()}`;
+            
+            img.onload = () => {
+                toggleLoader(false);
+            };
+            img.onerror = () => {
+                toggleLoader(false);
+                showToast("Failed to load analytics dashboard image.", "error");
+            };
+        }
+
+        // Trigger Analytics Refresh
+        async function handleAnalyticsRefresh() {
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_BASE}/analytics/refresh`, { method: 'POST' });
+                if (res.ok) {
+                    showToast("Analytics successfully regenerated!", "success");
+                    await loadAnalyticsPage();
+                    await refreshState();
+                } else {
+                    showToast("Failed to refresh analytics database charts.", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error updating analytics reports.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Open Detail Modal
+        async function openMovieDetail(imdbId) {
+            toggleLoader(true);
+            try {
+                const res = await fetch(`${API_BASE}/movie/${imdbId}`);
+                if (res.ok) {
+                    selectedMovie = await res.json();
+                    populateAndOpenModal(selectedMovie);
+                } else {
+                    showToast("Failed to fetch detailed movie information.", "error");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error opening movie details.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Populate detail modal data
+        function populateAndOpenModal(movie) {
+            // Header Image
+            const bgHeader = document.getElementById('modal-header-bg');
+            if (movie.poster && movie.poster !== 'N/A') {
+                bgHeader.style.backgroundImage = `url(${movie.poster})`;
+            } else {
+                bgHeader.style.backgroundImage = 'none';
+            }
+
+            // Poster image
+            document.getElementById('modal-poster').src = getPosterSrc(movie.poster);
+
+            // Information fields
+            document.getElementById('modal-title').textContent = movie.title;
+            document.getElementById('modal-year').textContent = movie.year || 'N/A';
+            document.getElementById('modal-rated').textContent = movie.rated && movie.rated !== 'N/A' ? movie.rated : 'Unrated';
+            document.getElementById('modal-runtime').textContent = movie.runtime && movie.runtime !== 'N/A' ? movie.runtime : 'Runtime N/A';
+            document.getElementById('modal-plot').textContent = movie.plot && movie.plot !== 'N/A' ? movie.plot : 'No plot summary available.';
+            document.getElementById('modal-director').textContent = movie.director && movie.director !== 'N/A' ? movie.director : 'Unknown';
+            document.getElementById('modal-cast').textContent = movie.cast && movie.cast !== 'N/A' ? movie.cast : 'N/A';
+            document.getElementById('modal-awards').textContent = movie.awards && movie.awards !== 'N/A' ? movie.awards : 'None';
+
+            // Genres list
+            const genreBox = document.getElementById('modal-genres');
+            genreBox.innerHTML = '';
+            if (movie.genre && movie.genre !== 'N/A') {
+                movie.genre.split(',').forEach(g => {
+                    const tag = document.createElement('span');
+                    tag.className = 'genre-tag';
+                    tag.textContent = g.trim();
+                    genreBox.appendChild(tag);
+                });
+            }
+
+            // Ratings pills
+            document.getElementById('val-imdb').textContent = movie.rating && movie.rating !== 'N/A' ? movie.rating : 'N/A';
+            document.getElementById('val-rt').textContent = movie.rotten_tomatoes && movie.rotten_tomatoes !== 'N/A' ? movie.rotten_tomatoes : 'N/A';
+            document.getElementById('val-metascore').textContent = movie.metascore && movie.metascore !== 'N/A' ? movie.metascore : 'N/A';
+
+            // Modal action buttons state
+            updateModalButtonsState(movie.imdb_id);
+
+            // Show Modal
+            document.getElementById('movie-modal').classList.add('open');
+            document.body.style.overflow = 'hidden'; // lock scroll
+        }
+
+        // Configure active modal buttons based on watchlist/watched history status
+        function updateModalButtonsState(imdbId) {
+            const isWatched = watchedIds.has(imdbId);
+            const isWatchlist = watchlistIds.has(imdbId);
+
+            const btnWatched = document.getElementById('modal-watched-btn');
+            const btnWatchlist = document.getElementById('modal-watchlist-btn');
+
+            // Set Watched Button
+            if (isWatched) {
+                btnWatched.textContent = 'Already Watched';
+                btnWatched.className = 'btn-modal watched-active';
+            } else {
+                btnWatched.textContent = '✅ Mark Watched';
+                btnWatched.className = 'btn-modal primary';
+            }
+
+            // Set Watchlist Button
+            if (isWatched) {
+                // If watched, disable watchlist actions
+                btnWatchlist.textContent = '+ List';
+                btnWatchlist.className = 'btn-modal secondary';
+                btnWatchlist.style.opacity = '0.4';
+                btnWatchlist.style.cursor = 'not-allowed';
+                btnWatchlist.disabled = true;
+            } else {
+                btnWatchlist.style.opacity = '1';
+                btnWatchlist.style.cursor = 'pointer';
+                btnWatchlist.disabled = false;
+                
+                if (isWatchlist) {
+                    btnWatchlist.textContent = '❌ Remove List';
+                    btnWatchlist.className = 'btn-modal watchlist-active';
+                } else {
+                    btnWatchlist.textContent = '➕ Add Watchlist';
+                    btnWatchlist.className = 'btn-modal secondary';
+                }
+            }
+        }
+
+        // Close Detail Modal
+        function closeModal() {
+            document.getElementById('movie-modal').classList.remove('open');
+            document.body.style.overflow = 'auto'; // restore scroll
+            selectedMovie = null;
+        }
+
+        // Handle modal Mark Watched click
+        async function handleModalWatchedClick() {
+            if (!selectedMovie) return;
+            const imdbId = selectedMovie.imdb_id;
+            const isCurrentlyWatched = watchedIds.has(imdbId);
+            
+            toggleLoader(true);
+            try {
+                if (isCurrentlyWatched) {
+                    // DELETE from watched
+                    const res = await fetch(`${API_BASE}/watched/${imdbId}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast("Removed from watched history.", "success");
+                    }
+                } else {
+                    // POST to watched
+                    const res = await fetch(`${API_BASE}/watched`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            imdbID: selectedMovie.imdb_id,
+                            title: selectedMovie.title,
+                            year: selectedMovie.year,
+                            poster: selectedMovie.poster
+                        })
+                    });
+                    if (res.ok) {
+                        showToast("Marked as Watched.", "success");
+                    }
+                }
+                
+                await refreshState();
+                updateModalButtonsState(imdbId);
+                await refreshActivePageContent();
+            } catch (err) {
+                console.error(err);
+                showToast("Action failed inside modal.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+
+        // Handle modal Add/Remove Watchlist click
+        async function handleModalWatchlistClick() {
+            if (!selectedMovie) return;
+            const imdbId = selectedMovie.imdb_id;
+            const isCurrentlyWatchlist = watchlistIds.has(imdbId);
+            
+            toggleLoader(true);
+            try {
+                if (isCurrentlyWatchlist) {
+                    // DELETE from watchlist
+                    const res = await fetch(`${API_BASE}/watchlist/${imdbId}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast("Removed from watchlist.", "success");
+                    }
+                } else {
+                    // POST to watchlist
+                    const res = await fetch(`${API_BASE}/watchlist`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            imdbID: selectedMovie.imdb_id,
+                            title: selectedMovie.title,
+                            year: selectedMovie.year,
+                            poster: selectedMovie.poster
+                        })
+                    });
+                    if (res.ok) {
+                        showToast("Added to watchlist.", "success");
+                    } else {
+                        const err = await res.json();
+                        showToast(err.message || "Failed to add to watchlist.", "error");
+                    }
+                }
+                
+                await refreshState();
+                updateModalButtonsState(imdbId);
+                await refreshActivePageContent();
+            } catch (err) {
+                console.error(err);
+                showToast("Action failed inside modal.", "error");
+            } finally {
+                toggleLoader(false);
+            }
+        }
+    </script>
+</body>
+</html>
