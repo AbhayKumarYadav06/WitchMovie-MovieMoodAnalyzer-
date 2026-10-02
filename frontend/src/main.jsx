@@ -725,6 +725,7 @@ function App() {
             </button>
           </div>
         </header>
+        <div className="made-by">Made by KindErs</div>
         <div className="page-wrap">
           {page !== "discover" && (
             <div className="page-heading">

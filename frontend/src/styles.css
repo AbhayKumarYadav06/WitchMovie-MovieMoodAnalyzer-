@@ -211,6 +211,19 @@ input:focus-visible {
   background-image: radial-gradient(#183f390c 0.7px, transparent 0.7px);
   background-size: 13px 13px;
 }
+.made-by {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  z-index: 10;
+  color: rgba(24, 63, 57, 0.78);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
 .topbar {
   position: sticky;
   top: 0;
